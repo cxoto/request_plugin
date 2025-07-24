@@ -1,3 +1,18 @@
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log("📥 收到消息:", message);
+
+  if (message.type === "word_data") {
+    const wordText = message.payload.originalText;
+    console.log("🔍 originalText 是：", wordText);
+
+    // ✅ 异步响应必须返回 true，并手动调用 sendResponse
+    setTimeout(() => {
+      sendResponse({ ok: true, reply: `收到：${wordText}` });
+    }, 100); // 模拟异步操作
+    return true; // ❗必须 return true，表明异步响应
+  }
+});
+
 // 替换模板中的占位符 ${key}
 function replacePlaceholders(objOrStr, values) {
   const jsonStr = typeof objOrStr === "string"
@@ -41,7 +56,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
         refreshContextMenus(changes.templates.newValue || []);
     }
 });
-
 
 
 // ✅ 右键菜单点击事件
