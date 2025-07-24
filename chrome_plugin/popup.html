@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Chroma 插件</title>
+  <style>
+    body { font-family: sans-serif; padding: 10px; width: 300px; }
+    input, select, button { width: 100%; margin: 5px 0; }
+    #response { white-space: pre-wrap; font-size: 12px; background: #f9f9f9; padding: 5px; }
+  </style>
+</head>
+<body>
+  <h2>选择接口</h2>
+  <select id="templateSelect"></select>
+
+  <div id="placeholderInputs"></div>
+
+  <button id="callApiBtn">调用接口</button>
+
+  <h3>返回结果：</h3>
+  <div id="response">（等待调用）</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
