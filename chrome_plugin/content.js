@@ -1,38 +1,61 @@
-(async () => {
-    console.log("✅ content-script 已注入");
+// 注册消息监听器
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "parseDiv") {
+        console.log("📥 收到解析请求，开始提取数据...");
 
-    try {
-        const wordData = {"abc" : "abc"};
-
-        if (wordData) {
-            console.log("Word Inputs:", wordData);
-            const response = await chrome.runtime.sendMessage({
-                type: "word_data",
-                payload: wordData
-            });
-            console.log("📩 来自 background 的响应:", response);
+        try {
+            const wordData = extractWordData();
+            if (!wordData) {
+                console.warn("⚠️ 未找到需要解析的词汇信息");
+                sendResponse({ error: "未找到需要解析的词汇信息" });
+            } else {
+                console.log("✅ 成功提取词汇数据:", wordData);
+                sendResponse({ word_data: wordData });
+            }
+        } catch (err) {
+            console.error("❌ 提取词汇数据异常:", err);
+            sendResponse({ error: "提取词汇数据异常" });
         }
-    } catch (err) {
-        console.error("❌ 消息发送失败:", err);
+
+        return true; // 表示 sendResponse 是异步的
     }
-})();
+});
 
-
+// 提取词汇信息
 function extractWordData() {
-    const container = document.querySelector('.word-dictionary');
-    if (!container) return null;
+    const shadowHostId = "immersive-translate-modal-selection-root";
+    const host = document.getElementById(shadowHostId);
 
-    const originalText = container.querySelector('.word-original-text')?.innerText?.trim() || '';
-    const phonetic = container.querySelector('.word-phonetic')?.innerText?.trim() || '';
-    const meaning = container.querySelector('.word-dictionary-meaning')?.innerText?.trim() || '';
-    const example = container.querySelector('.word-example span')?.innerText?.trim() || '';
-    const exampleTranslation = container.querySelector('.word-example .word-example-target')?.innerText?.trim() || '';
+    if (!host || !host.shadowRoot) {
+        console.warn(`⚠️ Shadow host 未找到或未挂载: #${shadowHostId}`);
+        return null;
+    }
+
+    const shadow = host.shadowRoot;
+    const container = shadow.querySelector(".word-dictionary");
+
+    if (!container) {
+        console.warn("⚠️ 未找到 .word-dictionary 容器");
+        return null;
+    }
+
+    // 通用提取函数
+    const safeText = (selector) =>
+        container.querySelector(selector)?.innerText?.trim() || "";
+
+    const originalText = safeText(".word-original-text");
+    const phonetic = safeText(".word-phonetic");
+
+    const pos = safeText(".word-dictionary-pos"); // 词性（如 adj.）
+    const meaning = safeText(".word-dictionary-meaning");
+    const fullMeaning = pos && meaning ? `${pos} ${meaning}` : meaning || pos;
+
+    const word_example = safeText(".word-example");
 
     return {
-        originalText,
-        phonetic,
-        meaning,
-        example,
-        exampleTranslation
+        originalText: originalText,
+        phonetic: phonetic,
+        meaning: fullMeaning,
+        word_example
     };
 }

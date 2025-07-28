@@ -1,27 +1,12 @@
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("📥 收到消息:", message);
-
-  if (message.type === "word_data") {
-    const wordText = message.payload.originalText;
-    console.log("🔍 originalText 是：", wordText);
-
-    // ✅ 异步响应必须返回 true，并手动调用 sendResponse
-    setTimeout(() => {
-      sendResponse({ ok: true, reply: `收到：${wordText}` });
-    }, 100); // 模拟异步操作
-    return true; // ❗必须 return true，表明异步响应
-  }
-});
-
 // 替换模板中的占位符 ${key}
 function replacePlaceholders(objOrStr, values) {
-  const jsonStr = typeof objOrStr === "string"
-    ? objOrStr
-    : JSON.stringify(objOrStr);
+    const jsonStr = typeof objOrStr === "string"
+        ? objOrStr
+        : JSON.stringify(objOrStr);
 
-  const replaced = jsonStr.replace(/\$\{(\w+)\}/g, (_, key) => values[key] || "");
+    const replaced = jsonStr.replace(/\$\{(\w+)\}/g, (_, key) => values[key] || "");
 
-  return typeof objOrStr === "string" ? replaced : JSON.parse(replaced);
+    return typeof objOrStr === "string" ? replaced : JSON.parse(replaced);
 }
 
 
@@ -66,12 +51,24 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         console.warn("未找到配置模板", info.menuItemId);
         return;
     }
+    const [tabId] = [tab.id];
+    const response = await chrome.tabs.sendMessage(tabId, { action: "parseDiv" });
+    console.log("✅ 来自 content-script 的数据：", response);
+    const wordData = response.word_data || {};
     // 提取所有占位符
     const allPlaceholders = extractPlaceholders(config);
-    const realPlaceholders = [...new Set(allPlaceholders.filter(p => p !== "input"))];
+    // 过滤 realPlaceholders：去掉 "input" 和 wordData 中已有的 key
+    const wordDataKeys = Object.keys(wordData);
+    const realPlaceholders = [...new Set(
+        allPlaceholders.filter(p => p !== "input" && !wordDataKeys.includes(p))
+    )];
 
-    const placeholderValues = { input: info.selectionText };
-    console.log("placeholderValues: " , placeholderValues)
+    // 把 wordData 的键值对填入 placeholderValues
+    const placeholderValues = { input: info.selectionText, ...wordData };
+
+
+    console.log("✅ placeholderValues: ", placeholderValues);
+
     if (realPlaceholders.length > 0) {
         // 打开一个参数填写窗口
         await chrome.storage.local.set({ pendingPlaceholders: realPlaceholders });
@@ -119,7 +116,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         });
 
         const result = await response.text();
-        
+
         console.log("API 调用结果：", result);
     }
 });
@@ -127,5 +124,5 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 function extractPlaceholders(template) {
     const str = JSON.stringify(template);
     const matches = [...str.matchAll(/\$\{(\w+)\}/g)];
-    return matches.map(m => m[1]);
+    return matches.map(m => m[1]); 
 }
