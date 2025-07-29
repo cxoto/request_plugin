@@ -96,6 +96,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                     headers: finalHeaders,
                     body: JSON.stringify(finalBody)
                 }).then(res => res.text()).then(result => {
+                    chrome.tabs.sendMessage(tab.id, {
+                        action: "SHOW_TOAST",
+                        text: "Requests results: " + result,
+                        toastType: "success"
+                    });
                     console.log("API 返回：", result);
                 });
 
@@ -116,6 +121,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         });
 
         const result = await response.text();
+        chrome.tabs.sendMessage(tab.id, {
+            action: "SHOW_TOAST",
+            text: "Requests results: " + result,
+            toastType: "success"
+        });
 
         console.log("API 调用结果：", result);
     }
@@ -124,5 +134,5 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 function extractPlaceholders(template) {
     const str = JSON.stringify(template);
     const matches = [...str.matchAll(/\$\{(\w+)\}/g)];
-    return matches.map(m => m[1]); 
+    return matches.map(m => m[1]);
 }
